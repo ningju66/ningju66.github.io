@@ -67,8 +67,7 @@
 
   /* ---------- sheets (Index / Information) ---------- */
   .sheet {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
-    height: calc(100vh - 64px);
+    position: fixed; left: 0; right: 0; top: 64px; bottom: 0; z-index: 20;
     background: var(--panel); color: var(--panel-ink);
     transform: translateY(102%);
     transition: transform .7s var(--ease);
@@ -95,7 +94,7 @@
   .view:hover { color: var(--panel-ink); }
   /* Index: fixed list on the left, works scroll on the right */
   .idx { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .45fr) minmax(0, 1fr); column-gap: var(--gutter); padding: 22px var(--gutter) 0; }
-  .idx-nav { grid-column: 1; position: sticky; top: 22px; align-self: start; max-height: calc(100vh - 108px); overflow-y: auto; }
+  .idx-nav { grid-column: 1; position: sticky; top: 22px; align-self: start; max-height: calc(100vh - 108px); max-height: calc(100dvh - 108px); overflow-y: auto; }
   .idx-nav .title { margin-bottom: 18px; }
   .idx-nav ol { list-style: none; font-size: 14px; line-height: 1.55; }
   .idx-nav a { color: #9a9a95; text-decoration: none; display: flex; gap: 14px; transition: color .2s; }
@@ -534,11 +533,15 @@ function setSheet(which) {
 }
 btnIndex.onclick = () => setSheet(sIndex.classList.contains("open") ? null : "index");
 btnInfo.onclick  = () => setSheet(sInfo.classList.contains("open") ? null : "info");
-document.getElementById("home").onclick = e => { e.preventDefault(); setSheet(null); closeDetail(); };
+document.getElementById("home").onclick = e => { e.preventDefault(); returnSheet = null; closeDetail(); setSheet(null); };
 
 /* ---------- work detail ---------- */
 const detail = document.getElementById("detail"), dInner = document.getElementById("detail-inner");
+// which panel to return to when a work page closes ("index", "info" or null = home)
+let returnSheet = null;
+const openSheetName = () => sIndex.classList.contains("open") ? "index" : sInfo.classList.contains("open") ? "info" : null;
 function openDetail(i) {
+  if (!detail.classList.contains("open")) returnSheet = openSheetName();
   const w = WORKS[i];
   dInner.innerHTML = `
     <div class="detail-text">
@@ -568,15 +571,17 @@ function closeDetail(fromRoute) {
   detail.classList.remove("open"); detail.setAttribute("aria-hidden", "true");
   document.title = "Ning Ju Hsu";
   if (!fromRoute && location.hash) history.pushState(null, "", location.pathname);
+  if (openSheetName() !== returnSheet) setSheet(returnSheet);   // back to Index (same scroll spot) if we came from there, otherwise home
+  returnSheet = null;
 }
 document.getElementById("close-detail").onclick = () => closeDetail();
-addEventListener("keydown", e => { if (e.key === "Escape") { closeDetail(); setSheet(null); } });
+addEventListener("keydown", e => { if (e.key !== "Escape") return; if (detail.classList.contains("open")) closeDetail(); else setSheet(null); });
 
 /* ---------- routing: open the right work from the address bar ---------- */
 function route() {
   const slug = location.hash.replace(/^#\/?/, "");
   const i = WORKS.findIndex(w => slugOf(w) === slug);
-  if (i >= 0) { setSheet(null); openDetail(i); } else closeDetail(true);
+  if (i >= 0) openDetail(i); else if (detail.classList.contains("open")) closeDetail(true);
 }
 addEventListener("popstate", route);
 route();
