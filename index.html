@@ -67,7 +67,7 @@
 
   /* ---------- sheets (Index / Information) ---------- */
   .sheet {
-    position: fixed; left: 0; right: 0; top: 64px; bottom: 0; z-index: 20;
+    position: fixed; left: 0; right: 0; top: var(--head, 40px); bottom: 0; z-index: 20;
     background: var(--panel); color: var(--panel-ink);
     transform: translateY(102%);
     transition: transform .7s var(--ease);
@@ -94,7 +94,7 @@
   .view:hover { color: var(--panel-ink); }
   /* Index: fixed list on the left, works scroll on the right */
   .idx { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .45fr) minmax(0, 1fr); column-gap: var(--gutter); padding: 22px var(--gutter) 0; }
-  .idx-nav { grid-column: 1; position: sticky; top: 22px; align-self: start; max-height: calc(100vh - 108px); max-height: calc(100dvh - 108px); overflow-y: auto; }
+  .idx-nav { grid-column: 1; position: sticky; top: 22px; align-self: start; max-height: calc(100vh - var(--head, 40px) - 44px); max-height: calc(100dvh - var(--head, 40px) - 44px); overflow-y: auto; }
   .idx-nav .title { margin-bottom: 18px; }
   .idx-nav ol { list-style: none; font-size: 14px; line-height: 1.55; }
   .idx-nav a { color: #9a9a95; text-decoration: none; display: flex; gap: 14px; transition: color .2s; }
@@ -389,6 +389,9 @@ const HEIGHTS = [0.62, 0.92, 0.74, 0.55, 0.84, 0.68, 1.0, 0.6];
 const track = document.getElementById("track");
 const setVh = () => document.documentElement.style.setProperty("--vh", innerHeight / 100 + "px");
 setVh(); addEventListener("resize", setVh);
+// the panels start right under the header, so the white strip is only as tall as the header text
+const setHead = () => document.documentElement.style.setProperty("--head", Math.ceil(document.querySelector("header").getBoundingClientRect().height) + "px");
+setHead(); addEventListener("resize", setHead); document.fonts && document.fonts.ready.then(setHead);
 /* Home strip: [work slug, photo number, height as a share of the page height].
    Order and sizes follow Ning Ju's layout sketch (1 = full page height). */
 const HOME = [
