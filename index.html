@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ning Ju Hsu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #ffffff;
+    --ink: #1c1c1c;
+    --panel: #151515;
+    --panel-ink: #e9e9e6;
+    --muted: #8a8a86;
+    --rule: #3a3a38;
+    --gutter: 16px;
+    --ease: cubic-bezier(.2,.7,.1,1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font: 500 18px/1.25 "Montserrat", system-ui, sans-serif;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+
+  /* ---------- header ---------- */
+  header {
+    position: fixed; inset: 0 0 auto 0; z-index: 30;
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 12px var(--gutter);
+    font-size: clamp(11px, calc(1.9vw - 12px), 14px);
+    letter-spacing: -0.01em;
+  }
+  header, header a, nav button, .close { font-weight: 500; }
+  header a { color: inherit; text-decoration: none; }
+  nav button { padding: 0; }
+  nav button[aria-expanded="true"] { text-decoration: underline; text-underline-offset: .18em; text-decoration-thickness: 1.5px; }
+
+  /* ---------- conveyor ---------- */
+  .belt {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    height: 78vh;
+    cursor: grab; touch-action: pan-y;
+    user-select: none;
+  }
+  .belt.dragging { cursor: grabbing; }
+  .track {
+    position: absolute; left: 0; bottom: 0; height: 100%;
+    display: flex; align-items: flex-end;
+    will-change: transform;
+  }
+  .plate {
+    flex: none; position: relative; overflow: hidden; display: block;
+    background: #111;
+  }
+  .plate img { height: 100%; width: auto; display: block; pointer-events: none; -webkit-user-drag: none; }
+  .plate .ph {
+    position: absolute; left: 12px; bottom: 10px;
+    font: 400 11px/1.3 "IBM Plex Mono", monospace; color: rgba(255,255,255,.7);
+  }
+
+  /* ---------- sheets (Index / Information) ---------- */
+  .sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    height: calc(100vh - 64px);
+    background: var(--panel); color: var(--panel-ink);
+    transform: translateY(102%);
+    transition: transform .7s var(--ease);
+    overflow-y: auto; overscroll-behavior: contain;
+  }
+  .sheet.open { transform: translateY(0); }
+
+  .row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr);
+    column-gap: var(--gutter);
+    padding: 22px var(--gutter) 34px;
+  }
+  .row + .row { padding-top: 6px; }
+  .rule { border-top: 1px solid var(--rule); margin-top: 9px; }
+  .num { font: 400 12px/1.2 "IBM Plex Mono", monospace; color: var(--muted); letter-spacing: .04em; margin-bottom: 8px; }
+  .title { font-size: clamp(18px, 1.7vw, 24px); line-height: 1.15; }
+  .meta {
+    margin: 16px 0 18px 14px; padding-left: 14px;
+    border-left: 1px solid var(--rule);
+    font-size: 14px; line-height: 1.35; color: #bdbdb8;
+  }
+  .view { font: 400 12px "IBM Plex Mono", monospace; color: var(--muted); letter-spacing: .04em; }
+  .view:hover { color: var(--panel-ink); }
+  /* Index: fixed list on the left, works scroll on the right */
+  .idx { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .45fr) minmax(0, 1fr); column-gap: var(--gutter); padding: 22px var(--gutter) 0; }
+  .idx-nav { grid-column: 1; position: sticky; top: 22px; align-self: start; max-height: calc(100vh - 108px); overflow-y: auto; }
+  .idx-nav .title { margin-bottom: 18px; }
+  .idx-nav ol { list-style: none; font-size: 14px; line-height: 1.55; }
+  .idx-nav a { color: #9a9a95; text-decoration: none; display: flex; gap: 14px; transition: color .2s; }
+  .idx-nav a span { font: 400 12px/1.85 "IBM Plex Mono", monospace; color: var(--muted); letter-spacing: .04em; }
+  .idx-nav a:hover, .idx-nav a.on { color: var(--panel-ink); }
+  .idx-main { grid-column: 3; }
+  .idx-item { display: grid; grid-template-columns: 44px minmax(0, 1fr); column-gap: var(--gutter); padding-bottom: 96px; scroll-margin-top: 22px; }
+  .idx-n { margin: 0; padding-top: 6px; }
+  #sheet-index .title { font-size: 13px; line-height: 1.3; }
+  #sheet-index .num, #sheet-index .view { font-size: 10px; }
+  #sheet-index .meta { font-size: 11px; line-height: 1.4; margin: 12px 0 0 10px; padding-left: 10px; }
+  #sheet-index .idx-nav ol { font-size: 12px; line-height: 1.6; }
+  #sheet-index .idx-nav a span { font-size: 10px; line-height: 1.9; }
+  #sheet-index .idx-nav .title { margin-bottom: 14px; }
+  .idx-img { display: block; margin: 16px 0 8px; }
+  .idx-img img { width: 100%; height: auto; display: block; }
+  .thumb { display: block; margin-top: 18px; aspect-ratio: 4/3; background: #222; overflow: hidden; }
+  .thumb-m { display: none; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  .info p { font-size: 12px; line-height: 1.55; max-width: 38em; }
+  .info-head { font-weight: 500; font-size: clamp(20px, 1.7vw, 26px); line-height: 1.1; letter-spacing: -0.015em; margin: 4px 0 16px; }
+  .serif-it { font: italic 400 1.04em/1 "Times New Roman", Times, serif; letter-spacing: -0.01em; }
+  #sheet-info .num { font-size: 10px; }
+  .info-sub { font: 400 10px "IBM Plex Mono", monospace; color: var(--muted); letter-spacing: .04em; margin: 2.2em 0 .7em; }
+  .info p + p { margin-top: 1em; }
+  .info a { color: inherit; text-underline-offset: .18em; }
+  .info dl { font-size: 11px; line-height: 1.5; color: #bdbdb8; }
+  .cv-head { font-size: 13px; line-height: 1.3; margin-bottom: 12px; }
+  .cv ul { list-style: none; }
+  .cv li { padding: 8px 0 9px; border-top: 1px solid var(--rule); }
+  .cv-title { font-size: 12px; line-height: 1.35; }
+  .cv-meta { font-size: 11px; line-height: 1.4; color: #a9a9a4; margin-top: 3px; max-width: 40em; }
+  .info dt { font: 400 10px "IBM Plex Mono", monospace; color: var(--muted); margin-top: 18px; letter-spacing: .04em; }
+
+  /* ---------- work detail ---------- */
+  .detail {
+    position: fixed; inset: 0; z-index: 40; background: var(--paper);
+    opacity: 0; visibility: hidden; transition: opacity .4s ease, visibility 0s .4s;
+    overflow-y: auto;
+  }
+  .detail.open { opacity: 1; visibility: visible; transition: opacity .4s ease; }
+  .detail-inner { padding: 64px var(--gutter) 80px; display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.45fr) minmax(0,1.9fr); gap: var(--gutter); }
+  .detail-inner > .detail-text { grid-column: 1; grid-row: 1; border-right: 1px solid #d9d9d6; padding-right: 20px; }
+  .detail-inner > .detail-imgs { grid-column: 3; grid-row: 1; }
+  .detail-text { align-self: start; position: sticky; top: 64px; max-height: calc(100vh - 88px); overflow-y: auto; scrollbar-width: none; padding-bottom: 24px; }
+  .detail-text::-webkit-scrollbar { display: none; }
+  .detail-text .num { color: var(--muted); }
+  .work-title { font-weight: 500; font-size: clamp(20px, 1.7vw, 26px); line-height: 1.1; letter-spacing: -0.02em; margin: 6px 0 8px; }
+  .work-sub { font-size: 11px; line-height: 1.35; color: #666; margin-bottom: 22px; }
+  .detail-text .body { font-size: 12px; line-height: 1.55; max-width: 36em; }
+  .detail-text .body + .body { margin-top: .9em; }
+  .detail-text .body:first-of-type { font: italic 400 15px/1.3 "Times New Roman", Times, serif; -webkit-text-stroke: 0.4px currentColor; }
+  .detail-text .meta { color: #555; border-color: #ddd; font-size: 11px; margin: 14px 0 0 10px; padding-left: 10px; }
+  .detail-imgs { display: grid; gap: var(--gutter); }
+  .detail-imgs img, .detail-imgs video { width: 100%; height: auto; display: block; background: #111; }
+  .detail-imgs video { width: auto; max-width: 100%; max-height: 90vh; margin: 0 auto; }
+  .detail-imgs .pair { display: flex; gap: var(--gutter); align-items: flex-start; }
+  .detail-imgs .pair > * { min-width: 0; width: 100%; height: auto; max-height: none; object-fit: cover; margin: 0; }
+  .detail::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 52px; background: var(--paper); z-index: 2; }
+  .detail-inner { position: relative; z-index: 1; }
+  .close { position: fixed; top: 12px; right: var(--gutter); z-index: 41; font-size: clamp(11px, calc(1.9vw - 12px), 14px); }
+
+  @media (max-width: 720px) {
+    body { font-size: 16px; }
+    .belt { height: 70vh; }
+    .row { grid-template-columns: 1fr; }
+    .row > .col-pad { display: none; }
+    .thumb-m { display: block; margin: 0 0 14px; }
+    .idx { grid-template-columns: 1fr; }
+    .idx-nav { position: static; max-height: none; margin-bottom: 36px; }
+    .idx-main { grid-column: 1; }
+    .idx-item { grid-template-columns: 1fr; padding-bottom: 64px; }
+    .idx-n { padding: 0 0 6px; }
+    .detail-inner { grid-template-columns: 1fr; }
+    .detail-inner > .detail-text, .detail-inner > .detail-imgs { grid-column: 1; grid-row: auto; }
+    .detail-inner > .detail-text { border-right: 0; padding-right: 0; }
+    .detail-text { position: static; max-height: none; overflow: visible; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sheet, .detail { transition: none; }
+  }
+
+  /* Work pages: dark */
+  .detail { background: var(--panel); color: var(--panel-ink); }
+  .detail::before { background: var(--panel); }
+  .detail .close { color: var(--panel-ink); }
+  .detail-inner > .detail-text { border-right-color: var(--rule); }
+  .work-sub { color: var(--muted); }
+  .detail-text .meta { color: #a9a9a4; border-color: var(--rule); }
+  .detail-imgs img, .detail-imgs video { background: #0c0c0c; }
+
+</style>
+</head>
+<body>
+
+<header>
+  <a href="#" id="home">Ning Ju Hsu</a>
+  <nav><button id="btn-index" aria-expanded="false">Index</button>, <button id="btn-info" aria-expanded="false">Information</button></nav>
+</header>
+
+<div class="belt" id="belt"><div class="track" id="track"></div></div>
+
+<section class="sheet" id="sheet-index" aria-label="Index"></section>
+<section class="sheet info" id="sheet-info" aria-label="Information"></section>
+
+<div class="detail" id="detail" aria-hidden="true">
+  <button class="close" id="close-detail">Close</button>
+  <div class="detail-inner" id="detail-inner"></div>
+</div>
+
+<script>
+/* =========================================================
+   CONTENT: edit this part only.
+   Photos live in images/<slug>/1.jpg, 2.jpg …  (1 = cover)
+   video: true  → images/<slug>/video.mp4 is shown on the work page
+   belt: which photo numbers appear on the moving home strip
+   cover: photo number used as the main image (default 1); it also
+          comes first on the work page
+   ========================================================= */
+const WORKS = [
+  { title: "A House Where a Day Becomes a Year", slug: "a-house-where-a-day-becomes-a-year", year: "2026", medium: "Installation",
+    count: 11, video: false, belt: [1, 9, 2],
+    text: [
+      "A House Where a Day Becomes a Year explores the relationship between dreams, memory and time through five years of recorded dreams.",
+      "Having dreamed almost every night since childhood, I began to notice how differently time unfolds in dreams. A single night could hold several places, overlapping memories and events that seemed to span years. After moving from Taiwan to the Netherlands, my dreams grew more vivid and intense, blurring past and present, familiarity and displacement, waking life and the unconscious.",
+      "In everyday life, time is measured and divided by the clock. Yet the time we feel does not follow the same logic: memories return without warning, emotions stretch or compress duration, and places we have left continue to live within us. Using my dream archive as research material and point of departure, I approach time as something that can overlap, repeat, fracture and return.",
+      "The installation draws on the beaded curtain that once separated my childhood bedroom from the rest of the house. Suspended sculptural structures, moving images, light and sound form a shifting environment in which different temporalities coexist. As the structures move, images appear, disappear and transform, resisting a single, stable narrative.",
+      "Rather than explaining dreams, the work invites visitors into a space where many experiences unfold at once, and asks whether our lives must follow a linear sequence to make sense. In this house, a day can become a year, the past can remain present, and time can exist beyond the boundaries of the clock."
+    ],
+    details: ["Individual work", "Suspended sculptural structures, moving image, light, sound", "Dutch Design Week, Eindhoven, 2026"] },
+
+  { title: "Some Memories Choose to Stay, Others Choose to Flee", slug: "some-memories-choose-to-stay", year: "2025", medium: "Audio-visual installation",
+    count: 1, belt: [1],
+    media: ["1.jpg", "v02.mp4", "v03.mp4", "v04.mp4", "v05.mp4", "v06.mp4", "v07.mp4", "v08.mp4"],
+    text: [
+      "This installation traces how memory travels across generations, and how silence can shape identity as deeply as words.",
+      "It began with the diaries of my grandfather, my mother, and myself, three voices bound by blood yet separated by war, time, and social change in Taiwan. My grandfather’s migration as a soldier during the Chinese Civil War left unspoken wounds; my mother’s diaries reveal the quiet resilience of a woman navigating Taiwan’s industrial boom; my own notes echo a restless generation in search of new ground.",
+      "The work itself is my diary, written in response to my family’s diaries and translated into a spatial experience. It becomes a constellation of memory where handwriting fades, a voice continuously questions and answers itself, and light seems to breathe and flow. Rather than following a linear history, the audience drifts through layers of presence and absence, sensing how intimate memories reverberate within collective forgetting.",
+      "Born under the theme Third Nature: feminine spatial practices, I see my family as my Third Nature, a shifting landscape of migration, diaries, bodies, and love. It cannot be named, yet it lingers in what is written, and in what is left unsaid."
+    ],
+    details: ["Individual work", "Dutch Design Week, De Fabriek, Eindhoven, 2025", "Theme: Third Nature: feminine spatial practices"] },
+
+  { title: "A Shape of Uncertainty", slug: "a-shape-of-uncertainty", year: "2025", medium: "Visual installation",
+    count: 8, belt: [1, 4],
+    // [file, width/height] pairs sit side by side at the same height
+    media: ["1.jpg", [["2.jpg", 0.8], ["video2.mp4", 0.5625]], "3.jpg", "4.jpg", "5.jpg", "6.jpg", "7.jpg", "8.jpg", "video1.mp4"],
+    text: [
+      "Inspired by crop circles, patterns of mysterious beauty left in fields like whispers from an unknown hand. The phenomenon dates back to 1678, entwined with myths of The Mowing Devil. Since then, these formations have become a canvas for wonder, a cipher waiting to be unraveled.",
+      "Scientists traced their spirals, mapping the Golden Ratio, Fibonacci Sequence, and sacred geometry, patterns found in galaxies, ancient cathedrals, and blooming flowers. Some claimed they held hidden knowledge: new elements, growth techniques, or even messages from a civilization beyond our own. This gray space between scientific evidence and pure imagination is what makes them so captivating.",
+      "Between 1978 and 1991, two artists quietly stepped into the fields and wove their own circles, creating over 200 formations that puzzled the world. Researchers extracted meaning, only to later discover the deception. But by then, belief had already taken root, refusing to wither.",
+      "With time, crop circles drifted from mystery into the digital age: chopped into one-minute decoding videos, repurposed as prophecies, aesthetics, advertisements. No longer unsolved riddles, they became symbols detached from their origin.",
+      "This reflects something deeper: the fragmentation, emotionalization, and performativity of knowledge today. The moment a pattern emerges, we rush to explain, to categorize, to give it a name.",
+      "I designed my icon as a movement, like a clock, constantly shifting. Scientists see formulas. Mystics see cosmic messages. Psychologists see reflections of the mind. Storytellers weave them into fate.",
+      "Yet, a crop circle is just a shape, until we start to interpret it.",
+      "This made me wonder: does meaning come from uncovering, or from interpretation itself?",
+      "I chose one of the most debated shapes in crop circle history, asking people how they imagined it. From their words, I created ten fictional narratives, experimenting with how meaning is shaped through storytelling, symbolism, and perception.",
+      "A symbol can be both nothing and everything, depending on how we choose to see it."
+    ],
+    details: ["ICON Project", "Casa Tempo: The House of Time, group exhibition, Mulino Factory, Milano Design Week, Milan, 2025", "Special thanks to my friends for sharing their imagination and voices 🤍"] },
+
+  { title: "DoorWay Effect", slug: "doorway-effect", year: "2019", medium: "Interactive audio-visual installation",
+    count: 7, video: true, belt: [1, 3, 6],
+    text: [
+      "Why do we forget? The doorway effect describes a small, everyday lapse: when we walk through a door, the brain clears short-term memory to make room for a new episode. That is why we reach the kitchen and forget what we came for.",
+      "DoorWay Effect turns this into a memory game. Three door frames act as three levels. Each frame flashes a colour to remember, then starts cycling through colours at random; visitors have to pass through the frame showing the right one. Ultrasonic sensors register every crossing, and a projection of interlaced, shifting lines, a picture of neurons firing, responds as the mind moves from one room to the next."
+    ],
+    details: ["Individual work", "Arduino, ultrasonic sensors, WS2812 RGB LEDs, Processing, MadMapper", "Vision Get Wild Award, Interdisciplinary Category, selected, 2021"] },
+
+  { title: "Multiverse", slug: "multiverse", year: "2022", medium: "Kinetic installation",
+    count: 6, video: false, belt: [3, 6, 4], cover: 3,
+    text: [
+      "“Every time you make a decision, the world splits in two.” Multiverse starts from that idea: a life as a chain of choices, each one opening a parallel version of ourselves.",
+      "If those other timelines exist, the regrets, loves and summer days we have lived might carry on elsewhere, in endless variations. The installation tries to hold on to the instant when time splits.",
+      "Fresnel lenses hang from a steel truss and slide back and forth on a track driven by a motor and bicycle gears. Seen through them, the room and the people in it fracture, repeat and drift apart. Early versions used rotating mirrors and a projected image; both were set aside so that visitors meet the space directly, through the lenses alone."
+    ],
+    details: ["Individual work", "Motor, bicycle gears, Fresnel lenses, steel truss", "ARTOGOLD, Songyanland Festival, PLAY ONE, Songshan Cultural and Creative Park, Taipei, 2022"] },
+
+  { title: "Sense and Sensibility", slug: "sense-and-sensibility", year: "2020", medium: "Interactive audio-visual installation",
+    count: 8, video: true, belt: [4, 3, 5], cover: 4,
+    text: [
+      "A device that records the gap between what we say and what we feel.",
+      "Some people stir up more than we can put into words, yet what we say to them stays polite. Words can be written down; the feeling belongs only to that moment. The work began with the end of several relationships, and with the question of what is taken away and what is left behind.",
+      "While a visitor talks on the phone with someone who matters to them, sensors read their heartbeat, body temperature, movement and voice. A formula I designed translates these signals into images in real time, projected around them as an immersive record of emotions felt deeply but touched on lightly, kept as a gift to every encounter and every connection lost."
+    ],
+    details: ["Individual work", "Arduino with pulse, temperature, 3-axis accelerometer/gyro and microphone sensors; Processing; TouchDesigner", "Vision Get Wild Award, Interdisciplinary Category, selected, 2021", "Young Golden Pin Design Award, Digital Interaction Design Category, selected, 2021"] },
+
+  { title: "Lie of Memory", slug: "lie-of-memory", year: "2020", medium: "Interactive audio-visual installation",
+    count: 4, video: true, belt: [3, 1],
+    text: [
+      "Memory is a choice. A choice towards feelings.",
+      "Memory is the record our lives are built on, but it is never exact. Over time it divides, recombines and is replaced, drifting towards how things felt rather than how they were.",
+      "Viewers look at everyday memories through a fragmented window. Light passes through coloured panes and refracts; by operating the device, viewers switch the colour of the viewfinder, and dormant memories come forward in a different light. Each person leaves with an entirely different story. Feelings are real; memories are elusive."
+    ],
+    details: ["Individual work", "Arduino, motor, frame, acrylic, coloured cellophane, projected images of daily memory"] },
+
+  { title: "VAGUE", slug: "vague", year: "2021", medium: "Immersive dome film",
+    count: 7, video: false, belt: [1, 6, 5],
+    text: [
+      "Countless tiny creatures are the foundation of our planet. Microbes clean, decompose and keep ecosystems in balance. They are the least visible life, with the most varied forms.",
+      "VAGUE is an immersive dome film about these organisms as they gather, grow and come apart under the pressure of a warming climate, from coral bleaching to its last fluorescent bloom. A series of tunnels draws the audience deeper, layer by layer, into a microscopic world. Marine life photographed while diving shaped the creatures’ forms.",
+      "Shown in the dome at Future Vision Lab, Taiwan Contemporary Culture Lab (C-LAB), Taipei. I was responsible for 3D modelling, texturing and animation, and for generative visuals in TouchDesigner."
+    ],
+    details: ["Team work", "Cinema 4D, Blender, TouchDesigner", "Future Vision Lab, C-LAB, Taipei"] },
+
+  { title: "Falling Moon", slug: "falling-moon", year: "2021", medium: "Underwater light installation",
+    count: 6, video: false, belt: [1, 4, 3],
+    text: [
+      "A moon belonging to the ocean, shining in the way of the sea.",
+      "My grandfather lived by the coast and loved the ocean; my father is a diving instructor who spends his days underwater. I grew up close to the sea.",
+      "Falling Moon is a sphere of light placed underwater. Its colours follow the salinity of different ocean currents, shifting with time and the seasons, while the surface conditions of each day drive the movement of its light. The data comes from Central Weather Bureau observations at Houbihu, Kenting, so this moon belongs to that sea alone.",
+      "We are used to looking up at the same sky. This time, look down into the sea."
+    ],
+    details: ["Individual work", "Acrylic sphere, pressure-resistant silicone seal, Arduino, WS2812 RGB LEDs, ocean-current data"] },
+
+  { title: "Working on Bubbles", slug: "working-on-bubbles", year: "2019", medium: "Light installation",
+    count: 8, video: true, belt: [4, 1, 6],
+    text: [
+      "A flickering love that never lands,<br>a dissolving connection that no longer exists,<br><br>like light,<br>like walking on bubbles.",
+      "A motor turns a cluster of transparent spheres through laser light. Refracted and scattered by the moving plastic, the beams fill the room with drifting lines, an immersive space built from something that never quite stays still."
+    ],
+    details: ["Individual work", "Motor, lasers, transparent plastic spheres"] },
+];
+
+/* Order of works in Index and on work pages (001, 002 …). */
+const ORDER = [
+  "a-house-where-a-day-becomes-a-year",
+  "a-shape-of-uncertainty",
+  "multiverse",
+  "vague",
+  "working-on-bubbles",
+  "some-memories-choose-to-stay",
+  "falling-moon",
+  "sense-and-sensibility",
+  "lie-of-memory",
+  "doorway-effect",
+];
+WORKS.sort((a, b) => ORDER.indexOf(a.slug) - ORDER.indexOf(b.slug));
+
+const INFO = {
+  heading: '<em class="serif-it">Worlds</em> Within Worlds',
+  bio: [
+    "Ning Ju Hsu is a Taiwanese artist and designer based in the Netherlands, working across visual, sound, space, interactive media, art installation and research.",
+    { sub: "About the Practice" },
+    "Working across digital and physical environments, Hsu approaches artistic practice as a way of investigating how experiences are felt, remembered and transformed over time. Drawing from personal experiences, dreams and the shifting conditions of everyday life, she creates works that move between the tangible and the intangible, the familiar and the uncertain. Through installations, moving images, sound and interactive systems, her work opens up spaces for alternative ways of perceiving time and inhabiting reality."
+  ],
+  contact: [
+    ["Pronouns", "she/her"],
+    ["Practice", "Visual, sound, space, interactive media, art installation, research"],
+    ["Email", '<a href="mailto:ningju6.6@gmail.com">ningju6.6@gmail.com</a>'],
+    ["Instagram", '<a href="https://www.instagram.com/nnnning6.6/" target="_blank" rel="noopener">@nnnning6.6</a>'],
+    ["Based in", "Eindhoven, Netherlands"],
+  ],
+  // each item: [title, details]
+  sections: [
+    ["Selected Works &amp; Exhibitions", [
+      ["A House Where a Day Becomes a Year", "2026 · Dutch Design Week, Eindhoven (upcoming)<br>New installation"],
+      ["Some Memories Choose to Stay, Others Choose to Flee", "2025 · Dutch Design Week, De Fabriek, Eindhoven<br>Audio-visual installation"],
+      ["A Shape of Uncertainty", "2025 · “Casa Tempo: The House of Time” group exhibition, Mulino Factory, Milano Design Week, Milan<br>Visual installation"],
+      ["Multiverse, ARTOGOLD", "2022 · Songyanland Festival, PLAY ONE, Songshan Cultural and Creative Park, Taipei<br>Installation designer; selected work"],
+      ["(( (&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;) ))", "2022 · Group exhibition, Songshan Cultural and Creative Park, Warehouse No. 4, Taipei<br>Explored the interplay of absence and flux across creator, work, exhibition and viewer. Main visual identity team; own work also exhibited"],
+      ["Future Vision Lab", "2021 · 3D Visual Image Division, Taipei"],
+      ["Animation Workshop: World of the Great Unity", "2020 · Project designer, Taipei"],
+      ["Shih Chien × Chulalongkorn International Design Workshop", "2019 · Participant, Bangkok, Thailand"],
+    ]],
+    ["Professional Design Experience", [
+      ["WIZZ Design Co., Ltd.", "Head of Interaction Designer · 11/2023 to present, Taipei"],
+      ["Chieh-Ya Advertising &amp; Design Co., Ltd.", "Computer Graphic Assistant · 06/2018 to 06/2020, Taipei"],
+      ["Taipei 101 New Year’s Eve Fireworks Animation Show", "Design Assistant (part-time) · 06/2019 to 01/2020, Taipei"],
+    ]],
+    ["Awards &amp; Recognition", [
+      ["ARTOGOLD: “Multiverse”", "2022 · Songyanland Festival, Taipei"],
+      ["Vision Get Wild Award: “DoorWay Effect”", "2021 · Interdisciplinary Category, selected, Taipei"],
+      ["Vision Get Wild Award: “Sense and Sensibility”", "2021 · Interdisciplinary Category, selected, Taipei"],
+      ["Young Golden Pin Design Award: “Sense and Sensibility”", "2021 · Digital Interaction Design Category, selected, Taipei"],
+    ]],
+  ]
+};
+/* ========================================================= */
+
+const pad = n => String(n).padStart(3, "0");
+const slugOf = w => w.slug;
+const img = (w, n) => `images/${w.slug}/${n}.jpg`;
+const coverOf = w => w.cover || 1;
+const orderOf = w => [coverOf(w), ...Array.from({ length: w.count }, (_, k) => k + 1).filter(n => n !== coverOf(w))];
+const subline = w => [w.medium, w.year].filter(Boolean).join(", ");
+
+/* ---------- build conveyor ----------
+   Photos sit on a shared baseline at varied heights, so the row
+   reads as a staggered skyline. Every photo links to its work. */
+const HEIGHTS = [0.62, 0.92, 0.74, 0.55, 0.84, 0.68, 1.0, 0.6];
+const track = document.getElementById("track");
+const setVh = () => document.documentElement.style.setProperty("--vh", innerHeight / 100 + "px");
+setVh(); addEventListener("resize", setVh);
+/* Home strip: [work slug, photo number, height as a share of the page height].
+   Order and sizes follow Ning Ju's layout sketch (1 = full page height). */
+const HOME = [
+  ["multiverse", 3, 0.63],
+  ["falling-moon", 3, 0.31],
+  ["a-house-where-a-day-becomes-a-year", 1, 1.00],
+  ["multiverse", 6, 0.78],
+  ["a-house-where-a-day-becomes-a-year", 8, 0.38],
+  ["working-on-bubbles", 6, 0.65],
+  ["vague", 6, 0.37],
+  ["working-on-bubbles", 1, 0.74],
+  ["vague", 2, 0.70],
+  ["working-on-bubbles", 2, 1.00],
+  ["doorway-effect", 1, 0.70],
+  ["doorway-effect", 6, 0.32],
+];
+const beltItems = HOME.map(([slug, n, h]) => [WORKS.findIndex(w => w.slug === slug), n, h]).filter(([i]) => i >= 0);
+function buildSet() {
+  const frag = document.createDocumentFragment();
+  beltItems.forEach(([i, n, h]) => {
+    const w = WORKS[i];
+    const a = document.createElement("a");
+    a.className = "plate";
+    a.href = "#/" + w.slug;
+    a.draggable = false;
+    a.dataset.i = i;
+    a.style.height = `calc(var(--vh, 1vh) * ${h * 100})`;
+    a.innerHTML = `<img src="${img(w, n)}" alt="${w.title}" draggable="false">`;
+    a.querySelector("img").addEventListener("load", () => measure());
+    frag.appendChild(a);
+  });
+  return frag;
+}
+for (let k = 0; k < 3; k++) track.appendChild(buildSet());
+
+/* ---------- conveyor motion: constant drift + drag with inertia ---------- */
+const belt = document.getElementById("belt");
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let x = 0, v = 0, dragging = false, lastX = 0, lastT = 0, moved = 0;
+const DRIFT = reduce ? 0 : -0.5;          // px per frame, leftward
+let setWidth = 0;
+function measure() { setWidth = track.scrollWidth / 3; }
+window.addEventListener("load", measure); window.addEventListener("resize", measure); measure();
+
+function tick() {
+  if (!dragging) {
+    v += (DRIFT - v) * 0.04;              // ease velocity back toward drift
+    x += v;
+  }
+  if (setWidth) {                          // keep x inside the middle copy
+    if (x < -2 * setWidth) x += setWidth;
+    if (x >= -setWidth) x -= setWidth;
+  }
+  track.style.transform = `translate3d(${x}px,0,0)`;
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+belt.addEventListener("pointerdown", e => {
+  dragging = true; moved = 0; lastX = e.clientX; lastT = performance.now(); v = 0;
+  belt.classList.add("dragging"); belt.setPointerCapture(e.pointerId);
+});
+belt.addEventListener("pointermove", e => {
+  if (!dragging) return;
+  const now = performance.now(), dx = e.clientX - lastX;
+  x += dx; moved += Math.abs(dx);
+  v = dx / Math.max(1, now - lastT) * 16;  // px per frame
+  lastX = e.clientX; lastT = now;
+});
+const endDrag = e => {
+  if (!dragging) return;
+  dragging = false; belt.classList.remove("dragging");
+  if (moved < 5) {                         // a click, not a drag
+    const p = document.elementFromPoint(e.clientX, e.clientY)?.closest(".plate");
+    if (p) openDetail(+p.dataset.i);
+  }
+};
+belt.addEventListener("pointerup", endDrag);
+belt.addEventListener("click", e => e.preventDefault());   // pointerup decides; stops drag-releases from navigating
+belt.addEventListener("pointercancel", endDrag);
+belt.addEventListener("wheel", e => { x -= (e.deltaX || e.deltaY) * 0.8; }, { passive: true });
+
+/* ---------- Index sheet ----------
+   Left: list of works, stays put. Right: each work, scrolls. */
+const sIndex = document.getElementById("sheet-index");
+sIndex.innerHTML = `
+  <div class="idx">
+    <nav class="idx-nav">
+      <div class="num">000 / ${pad(WORKS.length)}</div>
+      <div class="title">List of Works</div>
+      <ol>${WORKS.map((w, i) => `<li><a href="#idx-${i}" data-to="${i}"><span>${pad(i + 1)}</span>${w.title}</a></li>`).join("")}</ol>
+    </nav>
+    <div class="idx-main">
+      ${WORKS.map((w, i) => `
+      <section class="idx-item" id="idx-${i}" data-i="${i}">
+        <div class="num idx-n">${pad(i + 1)}</div>
+        <div class="idx-body">
+          <div class="title">${w.title}${subline(w) ? "<br>" + subline(w) : ""}</div>
+          ${w.details.length ? `<div class="meta">${w.details.join("<br>")}</div>` : ""}
+          <a class="idx-img" href="#/${w.slug}"><img src="${img(w, coverOf(w))}" alt="${w.title}" loading="lazy"></a>
+          <button class="view" data-i="${i}">[View…]</button>
+        </div>
+      </section>`).join("")}
+    </div>
+  </div>`;
+sIndex.addEventListener("click", e => {
+  const b = e.target.closest(".view"); if (b) return openDetail(+b.dataset.i);
+  const n = e.target.closest("[data-to]");
+  if (n) { e.preventDefault(); document.getElementById("idx-" + n.dataset.to).scrollIntoView({ behavior: "smooth", block: "start" }); }
+});
+// highlight the work currently in view
+const idxLinks = [...sIndex.querySelectorAll(".idx-nav a")];
+const idxObserver = new IntersectionObserver(entries => entries.forEach(en => {
+  if (en.isIntersecting) idxLinks.forEach(l => l.classList.toggle("on", l.dataset.to === en.target.dataset.i));
+}), { root: sIndex, rootMargin: "-15% 0px -75% 0px" });
+sIndex.querySelectorAll(".idx-item").forEach(el => idxObserver.observe(el));
+
+/* ---------- Information sheet ---------- */
+const sInfo = document.getElementById("sheet-info");
+sInfo.innerHTML = `
+  <div class="row"><div class="col-pad"><div class="rule"></div></div>
+    <div><div class="num">Information</div><h1 class="info-head">${INFO.heading}</h1>${INFO.bio.map(p => typeof p === "string" ? `<p>${p}</p>` : `<h2 class="info-sub">${p.sub}</h2>`).join("")}</div>
+    <div><div class="rule"></div><dl>
+      ${INFO.contact.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}
+    </dl></div></div>` +
+  INFO.sections.map(([head, items], si) => `
+  <div class="row cv"><div class="col-pad"><div class="rule"></div></div>
+    <div><div class="num">${pad(si + 1)}</div><div class="cv-head">${head}</div>
+      <ul>${items.map(([t, d]) => `<li><div class="cv-title">${t}</div><div class="cv-meta">${d}</div></li>`).join("")}</ul>
+    </div><div class="col-pad"></div></div>`).join("");
+
+/* ---------- sheet toggling ---------- */
+const btnIndex = document.getElementById("btn-index"), btnInfo = document.getElementById("btn-info");
+function setSheet(which) {
+  const pairs = [[sIndex, btnIndex, "index"], [sInfo, btnInfo, "info"]];
+  pairs.forEach(([s, b, name]) => {
+    const on = which === name;
+    s.classList.toggle("open", on);
+    b.setAttribute("aria-expanded", on);
+    if (on) s.scrollTop = 0;
+  });
+}
+btnIndex.onclick = () => setSheet(sIndex.classList.contains("open") ? null : "index");
+btnInfo.onclick  = () => setSheet(sInfo.classList.contains("open") ? null : "info");
+document.getElementById("home").onclick = e => { e.preventDefault(); setSheet(null); closeDetail(); };
+
+/* ---------- work detail ---------- */
+const detail = document.getElementById("detail"), dInner = document.getElementById("detail-inner");
+function openDetail(i) {
+  const w = WORKS[i];
+  dInner.innerHTML = `
+    <div class="detail-text">
+      <div class="num">${pad(i + 1)} / ${pad(WORKS.length)}</div>
+      <h1 class="work-title">${w.title}</h1>
+      ${subline(w) ? `<div class="work-sub">${subline(w)}</div>` : ""}
+      ${(w.text || []).map(p => `<p class="body">${p}</p>`).join("")}
+      ${w.details.length ? `<div class="meta">${w.details.join("<br>")}</div>` : ""}
+    </div>
+    <div class="detail-imgs">
+      ${(w.media || [...orderOf(w).map(n => n + ".jpg"), ...(w.video === true ? ["video.mp4"] : (w.video || []))]).map((f, k) => {
+        const one = (f, style = "") => f.endsWith(".mp4")
+          ? `<video src="images/${w.slug}/${f}" autoplay muted loop playsinline controls preload="metadata"${style}></video>`
+          : `<img src="images/${w.slug}/${f}" alt="${w.title}, image ${k + 1}" loading="${k < 2 ? "eager" : "lazy"}"${style}>`;
+        return Array.isArray(f)
+          ? `<div class="pair">${f.map(([file, r]) => one(file, ` style="flex:${r};aspect-ratio:${r}"`)).join("")}</div>`
+          : one(f);
+      }).join("")}
+    </div>`;
+  detail.classList.add("open"); detail.setAttribute("aria-hidden", "false"); detail.scrollTop = 0;
+  document.title = `${w.title} | Ning Ju Hsu`;
+  const h = "#/" + slugOf(w);
+  if (location.hash !== h) history.pushState(null, "", h);
+}
+function closeDetail(fromRoute) {
+  detail.querySelectorAll("video").forEach(v => v.pause());
+  detail.classList.remove("open"); detail.setAttribute("aria-hidden", "true");
+  document.title = "Ning Ju Hsu";
+  if (!fromRoute && location.hash) history.pushState(null, "", location.pathname);
+}
+document.getElementById("close-detail").onclick = () => closeDetail();
+addEventListener("keydown", e => { if (e.key === "Escape") { closeDetail(); setSheet(null); } });
+
+/* ---------- routing: open the right work from the address bar ---------- */
+function route() {
+  const slug = location.hash.replace(/^#\/?/, "");
+  const i = WORKS.findIndex(w => slugOf(w) === slug);
+  if (i >= 0) { setSheet(null); openDetail(i); } else closeDetail(true);
+}
+addEventListener("popstate", route);
+route();
+</script>
+</body>
+</html>
