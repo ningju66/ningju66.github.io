@@ -138,8 +138,13 @@
   }
   .detail.open { opacity: 1; visibility: visible; transition: opacity .4s ease; }
   .detail-inner { padding: 64px var(--gutter) 80px; display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.45fr) minmax(0,1.9fr); gap: var(--gutter); }
+  .detail-inner.wide-text { grid-template-columns: minmax(0,1.4fr) minmax(0,1.05fr) minmax(0,1.9fr); }
   .detail-inner > .detail-text { grid-column: 1; grid-row: 1; border-right: 1px solid #d9d9d6; padding-right: 20px; }
-  .detail-inner > .detail-imgs { grid-column: 3; grid-row: 1; }
+  .detail-inner { --r: .5672; }            /* right column's share of columns 2+3 */
+  .detail-inner.wide-text { --r: .6441; }
+  .detail-inner > .detail-imgs { grid-column: 2 / 4; grid-row: 1; }
+  .detail-inner .detail-imgs > * { width: calc((100% - var(--gutter)) * var(--r)); margin-left: auto; }
+  .detail-inner .detail-imgs > img.landscape, .detail-inner .detail-imgs > video.landscape, .detail-inner .detail-imgs > .pair.landscape { width: 100%; }   /* landscape photos also fill the middle column */
   .detail-text { align-self: start; position: sticky; top: 64px; max-height: calc(100vh - 88px); overflow-y: auto; scrollbar-width: none; padding-bottom: 24px; }
   .detail-text::-webkit-scrollbar { display: none; }
   .detail-text .num { color: var(--muted); }
@@ -148,10 +153,14 @@
   .detail-text .body { font-size: 12px; line-height: 1.55; max-width: 36em; }
   .detail-text .body + .body { margin-top: .9em; }
   .detail-text .body:first-of-type { font: italic 400 15px/1.3 "Times New Roman", Times, serif; -webkit-text-stroke: 0.4px currentColor; }
+  .detail-text .d-label { font: 400 10px/1.4 "IBM Plex Mono", monospace; color: var(--muted); letter-spacing: .04em; margin-bottom: 10px; }
+  .detail-text .body.verse, .detail-text .body.lead { font: italic 400 15px/1.45 "Times New Roman", Times, serif; -webkit-text-stroke: 0.4px currentColor; }
+  .detail-text .body.lead { font-size: 17px; line-height: 1.3; }
+  .detail-text .d-sub { font: 400 10px/1.4 "IBM Plex Mono", monospace; color: var(--muted); letter-spacing: .06em; margin: 2.4em 0 .8em; }
   .detail-text .meta { color: #555; border-color: #ddd; font-size: 11px; margin: 14px 0 0 10px; padding-left: 10px; }
   .detail-imgs { display: grid; gap: var(--gutter); }
   .detail-imgs img, .detail-imgs video { width: 100%; height: auto; display: block; background: #111; }
-  .detail-imgs video { width: auto; max-width: 100%; max-height: 90vh; margin: 0 auto; }
+  .detail-imgs > video { max-height: 90vh; object-fit: contain; margin-right: 0; }
   .detail-imgs .pair { display: flex; gap: var(--gutter); align-items: flex-start; }
   .detail-imgs .pair > * { min-width: 0; width: 100%; height: auto; max-height: none; object-fit: cover; margin: 0; }
   .detail::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 52px; background: var(--paper); z-index: 2; }
@@ -169,8 +178,9 @@
     .idx-main { grid-column: 1; }
     .idx-item { grid-template-columns: 1fr; padding-bottom: 64px; }
     .idx-n { padding: 0 0 6px; }
-    .detail-inner { grid-template-columns: 1fr; }
+    .detail-inner, .detail-inner.wide-text { grid-template-columns: 1fr; }
     .detail-inner > .detail-text, .detail-inner > .detail-imgs { grid-column: 1; grid-row: auto; }
+    .detail-inner .detail-imgs > *, .detail-inner .detail-imgs > img.landscape { width: 100%; }
     .detail-inner > .detail-text { border-right: 0; padding-right: 0; }
     .detail-text { position: static; max-height: none; overflow: visible; }
   }
@@ -216,14 +226,17 @@
           comes first on the work page
    ========================================================= */
 const WORKS = [
-  { title: "A House Where a Day Becomes a Year", slug: "a-house-where-a-day-becomes-a-year", year: "2026", medium: "Installation",
+  { title: "A House Where a Day Becomes a Year", slug: "a-house-where-a-day-becomes-a-year", wideText: true, small: ["10.jpg", "11.jpg"], year: "2026", medium: "Installation",
     count: 11, video: false, belt: [1, 9, 2],
     text: [
-      "A House Where a Day Becomes a Year explores the relationship between dreams, memory and time through five years of recorded dreams.",
-      "Having dreamed almost every night since childhood, I began to notice how differently time unfolds in dreams. A single night could hold several places, overlapping memories and events that seemed to span years. After moving from Taiwan to the Netherlands, my dreams grew more vivid and intense, blurring past and present, familiarity and displacement, waking life and the unconscious.",
-      "In everyday life, time is measured and divided by the clock. Yet the time we feel does not follow the same logic: memories return without warning, emotions stretch or compress duration, and places we have left continue to live within us. Using my dream archive as research material and point of departure, I approach time as something that can overlap, repeat, fracture and return.",
-      "The installation draws on the beaded curtain that once separated my childhood bedroom from the rest of the house. Suspended sculptural structures, moving images, light and sound form a shifting environment in which different temporalities coexist. As the structures move, images appear, disappear and transform, resisting a single, stable narrative.",
-      "Rather than explaining dreams, the work invites visitors into a space where many experiences unfold at once, and asks whether our lives must follow a linear sequence to make sense. In this house, a day can become a year, the past can remain present, and time can exist beyond the boundaries of the clock."
+      { label: "Dream diary | 2024/11/03 | 05:44am | 5hr sleep" },
+      { verse: "It was a huge white house with three floors.<br>The first floor was forever dawn,<br>the second floor was suspended in autumn,<br>and the third floor kept snowing without end.<br>I ran through the house, moving from room to room, breathing, searching,<br>anxiety crawling over every part of me,<br>yet I still couldn’t find the hair felt my mother had given me.<br>The seasons shifted, the light shifted, the air shifted.<br>My dry lips were slightly cracked; my clothes were still damp.<br>And I could clearly feel that I had lived there for an entire year.<br>I moved through the building as if passing through seasons,<br>yet the clock said it had only been five hours of sleep." },
+      { verse: "This dream was not extraordinary in its imagery,<br>but in its time.<br>Nothing in the house obeyed the rhythm of waking life.<br>Time did not pass; it accumulated.<br>Layers of climate, mood, and memory stacked on top of one another,<br>as if time were a vertical geology rather than a horizontal line.<br>I did not move through time;<br>it built itself around me." },
+      { sub: "{ A HOUSE WHERE A DAY BECOMES A YEAR }" },
+      { lead: "A house where time does not pass, but accumulates." },
+      "Since migrating from Taiwan to the Netherlands, my body has lived across time zones it cannot align, and my dreams have grown more intense: scenes cut, overlap and repeat, and nights stretch or collapse. Yet when I wake and try to tell these dreams as stories, their gaps are filled and their contradictions corrected. What remains is coherent, but no longer true to the time I lived. The experiences that shape me rarely fit the linear stories the world expects me to tell.",
+      "Drawing on five years of dream records, I developed the Penumbra Temporal Coordinate System, five ways dream-time operates: alignment, emotional density, rifts, loops and parallel presents. To give this time a place, I returned to the bead curtain in front of my childhood bed. I fell asleep looking at it and woke up seeing it again; every magic moment of the night seemed to happen on it, a doorway between waking and dreaming.",
+      "The installation rebuilds that threshold. Suspended curtains hold transparent discs carrying symbols designed from fragments of my dream archive. Driven by hidden gears, the symbols slowly turn and realign, while projected images narrated through dream-time move with them, cutting without transition, looping, stretching with emotion, and holding several places at once: Taipei sunlight falling on Dutch snow, a crowd dancing on a melting moon, a nightmare put out by a sudden downpour. As light meets the turning forms, image and object keep shifting each other, so no moment of the dream appears the same twice. Visitors are not asked to understand a story, but to stay inside a time that unfolds at its own pace."
     ],
     details: ["Individual work", "Suspended sculptural structures, moving image, light, sound", "Dutch Design Week, Eindhoven, 2026"] },
 
@@ -238,7 +251,7 @@ const WORKS = [
     ],
     details: ["Individual work", "Dutch Design Week, De Fabriek, Eindhoven, 2025", "Theme: Third Nature: feminine spatial practices"] },
 
-  { title: "A Shape of Uncertainty", slug: "a-shape-of-uncertainty", year: "2025", medium: "Visual installation",
+  { title: "A Shape of Uncertainty", slug: "a-shape-of-uncertainty", allSmall: true, small: ["3.jpg", "4.jpg", "5.jpg", "7.jpg", "8.jpg"], year: "2025", medium: "Visual installation",
     count: 8, belt: [1, 4],
     // [file, width/height] pairs sit side by side at the same height
     media: ["1.jpg", [["2.jpg", 0.8], ["video2.mp4", 0.5625]], "3.jpg", "4.jpg", "5.jpg", "6.jpg", "7.jpg", "8.jpg", "video1.mp4"],
@@ -256,7 +269,7 @@ const WORKS = [
     ],
     details: ["ICON Project", "Casa Tempo: The House of Time, group exhibition, Mulino Factory, Milano Design Week, Milan, 2025", "Special thanks to my friends for sharing their imagination and voices 🤍"] },
 
-  { title: "DoorWay Effect", slug: "doorway-effect", year: "2019", medium: "Interactive audio-visual installation",
+  { title: "DoorWay Effect", slug: "doorway-effect", allSmall: true, year: "2019", medium: "Interactive audio-visual installation",
     count: 7, video: true, belt: [1, 3, 6],
     text: [
       "Why do we forget? The doorway effect describes a small, everyday lapse: when we walk through a door, the brain clears short-term memory to make room for a new episode. That is why we reach the kitchen and forget what we came for.",
@@ -266,6 +279,7 @@ const WORKS = [
 
   { title: "Multiverse", slug: "multiverse", year: "2022", medium: "Kinetic installation",
     count: 6, video: false, belt: [3, 6, 4], cover: 3,
+    media: ["3.jpg", "1.jpg", "4.jpg", "5.jpg", "6.jpg"], small: ["1.jpg", "4.jpg", "5.jpg", "6.jpg"],
     text: [
       "“Every time you make a decision, the world splits in two.” Multiverse starts from that idea: a life as a chain of choices, each one opening a parallel version of ourselves.",
       "If those other timelines exist, the regrets, loves and summer days we have lived might carry on elsewhere, in endless variations. The installation tries to hold on to the instant when time splits.",
@@ -273,7 +287,7 @@ const WORKS = [
     ],
     details: ["Individual work", "Motor, bicycle gears, Fresnel lenses, steel truss", "ARTOGOLD, Songyanland Festival, PLAY ONE, Songshan Cultural and Creative Park, Taipei, 2022"] },
 
-  { title: "Sense and Sensibility", slug: "sense-and-sensibility", year: "2020", medium: "Interactive audio-visual installation",
+  { title: "Sense and Sensibility", slug: "sense-and-sensibility", allSmall: true, year: "2020", medium: "Interactive audio-visual installation",
     count: 8, video: true, belt: [4, 3, 5], cover: 4,
     text: [
       "A device that records the gap between what we say and what we feel.",
@@ -282,7 +296,7 @@ const WORKS = [
     ],
     details: ["Individual work", "Arduino with pulse, temperature, 3-axis accelerometer/gyro and microphone sensors; Processing; TouchDesigner", "Vision Get Wild Award, Interdisciplinary Category, selected, 2021", "Young Golden Pin Design Award, Digital Interaction Design Category, selected, 2021"] },
 
-  { title: "Lie of Memory", slug: "lie-of-memory", year: "2020", medium: "Interactive audio-visual installation",
+  { title: "Lie of Memory", slug: "lie-of-memory", allSmall: true, year: "2020", medium: "Interactive audio-visual installation",
     count: 4, video: true, belt: [3, 1],
     text: [
       "Memory is a choice. A choice towards feelings.",
@@ -293,6 +307,9 @@ const WORKS = [
 
   { title: "VAGUE", slug: "vague", year: "2021", medium: "Immersive dome film",
     count: 7, video: false, belt: [1, 6, 5],
+    // 4 is swapped for 8 (small); 5 now sits in a row with three more dome renders
+    media: ["1.jpg", "2.jpg", { row: [["5.jpg", 1], ["d7.jpg", 1], ["d39.jpg", 1], ["d19.jpg", 1]], wide: true }, "3.jpg", "8.jpg", "6.jpg", "7.jpg"],
+    small: ["3.jpg", "6.jpg", "7.jpg", "8.jpg"],
     text: [
       "Countless tiny creatures are the foundation of our planet. Microbes clean, decompose and keep ecosystems in balance. They are the least visible life, with the most varied forms.",
       "VAGUE is an immersive dome film about these organisms as they gather, grow and come apart under the pressure of a warming climate, from coral bleaching to its last fluorescent bloom. A series of tunnels draws the audience deeper, layer by layer, into a microscopic world. Marine life photographed while diving shaped the creatures’ forms.",
@@ -300,7 +317,7 @@ const WORKS = [
     ],
     details: ["Team work", "Cinema 4D, Blender, TouchDesigner", "Future Vision Lab, C-LAB, Taipei"] },
 
-  { title: "Falling Moon", slug: "falling-moon", year: "2021", medium: "Underwater light installation",
+  { title: "Falling Moon", slug: "falling-moon", allSmall: true, year: "2021", medium: "Underwater light installation",
     count: 6, video: false, belt: [1, 4, 3],
     text: [
       "A moon belonging to the ocean, shining in the way of the sea.",
@@ -310,7 +327,7 @@ const WORKS = [
     ],
     details: ["Individual work", "Acrylic sphere, pressure-resistant silicone seal, Arduino, WS2812 RGB LEDs, ocean-current data"] },
 
-  { title: "Working on Bubbles", slug: "working-on-bubbles", year: "2019", medium: "Light installation",
+  { title: "Working on Bubbles", slug: "working-on-bubbles", small: ["4.jpg", "5.jpg", "6.jpg", "7.jpg", "8.jpg", "video.mp4"], year: "2019", medium: "Light installation",
     count: 8, video: true, belt: [4, 1, 6],
     text: [
       "A flickering love that never lands,<br>a dissolving connection that no longer exists,<br><br>like light,<br>like walking on bubbles.",
@@ -546,12 +563,18 @@ const openSheetName = () => sIndex.classList.contains("open") ? "index" : sInfo.
 function openDetail(i) {
   if (!detail.classList.contains("open")) returnSheet = openSheetName();
   const w = WORKS[i];
+  dInner.classList.toggle("wide-text", !!w.wideText);
   dInner.innerHTML = `
     <div class="detail-text">
       <div class="num">${pad(i + 1)} / ${pad(WORKS.length)}</div>
       <h1 class="work-title">${w.title}</h1>
       ${subline(w) ? `<div class="work-sub">${subline(w)}</div>` : ""}
-      ${(w.text || []).map(p => `<p class="body">${p}</p>`).join("")}
+      ${(w.text || []).map(p =>
+        typeof p === "string" ? `<p class="body">${p}</p>`
+        : p.label ? `<div class="d-label">${p.label}</div>`
+        : p.verse ? `<p class="body verse">${p.verse}</p>`
+        : p.sub ? `<h2 class="d-sub">${p.sub}</h2>`
+        : p.lead ? `<p class="body lead">${p.lead}</p>` : "").join("")}
       ${w.details.length ? `<div class="meta">${w.details.join("<br>")}</div>` : ""}
     </div>
     <div class="detail-imgs">
@@ -559,11 +582,20 @@ function openDetail(i) {
         const one = (f, style = "") => f.endsWith(".mp4")
           ? `<video src="images/${w.slug}/${f}" autoplay muted loop playsinline controls preload="metadata"${style}></video>`
           : `<img src="images/${w.slug}/${f}" alt="${w.title}, image ${k + 1}" loading="${k < 2 ? "eager" : "lazy"}"${style}>`;
-        return Array.isArray(f)
-          ? `<div class="pair">${f.map(([file, r]) => one(file, ` style="flex:${r};aspect-ratio:${r}"`)).join("")}</div>`
+        const row = Array.isArray(f) ? f : f && f.row;
+        return row
+          ? `<div class="pair${f.wide ? " landscape" : ""}">${row.map(([file, r]) => one(file, ` style="flex:${r};aspect-ratio:${r}"`)).join("")}</div>`
           : one(f);
       }).join("")}
     </div>`;
+  // landscape photos and videos get the wide size, unless listed in the work's "small"
+  dInner.querySelectorAll(".detail-imgs > img, .detail-imgs > video").forEach(el => {
+    if (w.allSmall || (w.small || []).includes(el.getAttribute("src").split("/").pop())) return;
+    const isVid = el.tagName === "VIDEO";
+    const tag = () => el.classList.toggle("landscape", isVid ? el.videoWidth > el.videoHeight : el.naturalWidth > el.naturalHeight);
+    if (isVid) el.readyState >= 1 ? tag() : el.addEventListener("loadedmetadata", tag, { once: true });
+    else el.complete && el.naturalWidth ? tag() : el.addEventListener("load", tag, { once: true });
+  });
   detail.classList.add("open"); detail.setAttribute("aria-hidden", "false"); detail.scrollTop = 0;
   document.title = `${w.title} | Ning Ju Hsu`;
   const h = "#/" + slugOf(w);
